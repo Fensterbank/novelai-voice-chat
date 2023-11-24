@@ -1,0 +1,9 @@
+keyboard
+soundfile
+sounddevice
+novelai_api
+numpy
+webrtcvad
+openai-whisper
+aiohttp
+python-dotenv

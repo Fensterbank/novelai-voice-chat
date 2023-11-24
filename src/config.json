@@ -1,0 +1,24 @@
+{
+    "whisper_options": {
+        "model": "small",
+        "device": null,
+        "language": "en",
+        "temperature": 0.0,
+        "initial_prompt": null,
+        "condition_on_previous_text": true,
+        "verbose": false
+    },
+    "novelai_options": {
+        "preset": "Carefree"
+    },
+    "hotkeys": {
+        "record": "z",
+        "instruct": "x",
+        "ai_speak": "c",
+        "list_devices": "l",
+        "print_hotkeys": "h"
+    },
+    "silence_duration": 900,
+    "playback_device_index": 15,
+    "recording_device_index": 14
+}
