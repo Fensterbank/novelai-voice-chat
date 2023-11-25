@@ -1,4 +1,4 @@
-keyboard
+pynput
 soundfile
 sounddevice
 novelai_api

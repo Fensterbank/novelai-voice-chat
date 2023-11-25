@@ -87,7 +87,7 @@ python run.py --context spaceship.json
 
 The project uses a configuration file to customize its behaviour. To set up the configuration, modify the `src\config.json` file:
 
-```json
+```jsonc
 {
     "whisper_options": {
         // tiny, base, small, medium, large. The bigger the model, the slower it is.
@@ -111,6 +111,14 @@ The project uses a configuration file to customize its behaviour. To set up the 
         "list_devices": "l",
         "print_hotkeys": "h"
     },
+    // define what info should be printed to the console
+    "output": {
+        "print_last_prompt": true,
+        "print_ai_response": true,
+        "print_transcription": true
+    },
+    // You may want to disable timestamps, since AI can get mad, if you don't talk to them for days.
+    "add_timestamps": true,
     // waiting time in ms before recording stops and transcribing starts
     "silence_duration": 900,
     // the device ids for playback and recording

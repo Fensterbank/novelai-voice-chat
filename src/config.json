@@ -18,6 +18,12 @@
         "list_devices": "l",
         "print_hotkeys": "h"
     },
+    "output": {
+        "print_last_prompt": true,
+        "print_ai_response": true,
+        "print_transcription": true
+    },
+    "add_timestamps": true,
     "silence_duration": 900,
     "playback_device_index": 15,
     "recording_device_index": 14

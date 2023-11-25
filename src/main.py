@@ -1,7 +1,6 @@
 import json
 import os
 import threading
-import keyboard
 import asyncio
 import datetime
 import argparse
@@ -17,6 +16,7 @@ from novelai_api.Tokenizer import Tokenizer
 from novelai_api.utils import b64_to_tokens
 from boilerplate import API
 from transcription import transcribe
+from pynput import keyboard
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--context', help='Path to the context file')
@@ -61,6 +61,12 @@ def load_config_with_defaults():
             'list_devices': 'l',
             'print_hotkeys': 'h'
         },
+        'output': {
+            'print_last_prompt': True,
+            'print_ai_response': True,
+            'print_transcription': True
+        },
+        'add_timestamps': True,
         'silence_duration': 900,
         'playback_device_index': 0,
         'recording_device_index': 0
@@ -114,7 +120,7 @@ def add_director_note_if_necessary(context: dict):
     context['messages'].append({
       'sender': None,
       'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-      'text': '{ ' + f" It's {formatted_date}." + ' }'
+      'text': '[ ' + f" It's {formatted_date}." + ' ]'
     })
     return
 
@@ -125,7 +131,7 @@ def add_director_note_if_necessary(context: dict):
     context['messages'].append({
       'sender': None,
       'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-      'text': '{ ' + f"{time_difference_text} later." + f" It's {formatted_date}." + ' }'
+      'text': '[ ' + f"{time_difference_text} later." + f" It's {formatted_date}." + ' ]'
     })
 
 def build_prompt(context: dict) -> str:
@@ -140,16 +146,19 @@ def build_prompt(context: dict) -> str:
     text = message.get('text', '')
 
     if sender == 'ai':
-      prompt += '\n' + f"{ai_name}: {text}"
+      prompt += '\n' + f"{ai_name}:\n{text}"
     elif sender == "user":
-      prompt += '\n' + f"{user_name}: {text}"
+      prompt += '\n' + f"{user_name}:\n{text}"
     else:
       prompt += '\n' + text
 
   prompt += '\n'
   return prompt
 
-async def generate_response(api, prompt: str, model: Model, preset: Preset, global_settings: GlobalSettings, bad_words: Optional[BanList], bias_groups: List[BiasGroup], module, stop_sequence: List[str], context: dict) -> str:
+async def generate_response(config: dict, api, prompt: str, model: Model, preset: Preset, global_settings: GlobalSettings, bad_words: Optional[BanList], bias_groups: List[BiasGroup], module, stop_sequence: List[str], context: dict) -> str:
+  prompt = Tokenizer.encode(model, prompt)
+  print('Story Size: ' + str(len(prompt)) + ' tokens.')
+  
   gen = await api.high_level.generate(
     prompt,
     model,
@@ -162,9 +171,9 @@ async def generate_response(api, prompt: str, model: Model, preset: Preset, glob
   )
 
   response = Tokenizer.decode(model, b64_to_tokens(gen['output']))
-  ai_name = context['ai_name']
-  response = response.replace(f"{ai_name}: ", '').rstrip('\n')
-  print('=> ' + response)
+  response = response.strip()
+  if config['output']['print_ai_response']:
+      print('=> ' + response)
   return response
 
 async def generate_voice(api, config: dict, context: dict, text: str):
@@ -180,9 +189,10 @@ async def generate_voice(api, config: dict, context: dict, text: str):
   with open(d / tts_file, "wb") as f:
       f.write(tts)
 
-  print("Have tts file, playing...")
+  print("Playing AI response...")
   # play the audio
   play_audio(d / tts_file, device_index=config["playback_device_index"])
+  print_hotkeys(config['hotkeys'])
 
 def play_audio(file_path, device_index=None):
     # Read the audio file
@@ -217,31 +227,33 @@ async def get_novelai_response(config: dict, context: dict, prompt: str):
     preset = Preset.from_official(model, config['novelai_options']['preset'])
     preset.min_length = 1
     preset.max_length = 20
-    print(prompt)
+    if config['output']['print_last_prompt']:
+      print(prompt)
 
     global_settings = GlobalSettings(num_logprobs=GlobalSettings.NO_LOGPROBS)
-    global_settings.bias_dinkus_asterism = True
     global_settings.rep_pen_whitelist = True
     global_settings.generate_until_sentence = True
 
-    bad_words: Optional[BanList] = BanList('{', '(', '\n', '^')
+    bad_words: Optional[BanList] = BanList('[', ']', '\n', f"{context['user_name']}:")
     bias_groups: List[BiasGroup] = []
 
     module = None
     stop_sequence = ['\n']
 
-    response = await generate_response(api, prompt, model, preset, global_settings, bad_words, bias_groups, module, stop_sequence, context)
+    response = await generate_response(config, api, prompt, model, preset, global_settings, bad_words, bias_groups, module, stop_sequence, context)
     await generate_voice(api, config, context, response)
     return response
 
 # default user input, adds director notes if necessary, build prompt and fetch from novelai
 async def perform_input(config: dict, input_string: str):
-    print('Performing input: ' + input_string)
+    if config['output']['print_transcription']:
+      print('Transcription: ' + input_string)
 
     with open(context_file, 'r') as file:
         context = json.load(file)
 
-    add_director_note_if_necessary(context)
+    if config['add_timestamps']:
+      add_director_note_if_necessary(context)
 
     user_input = input_string
 
@@ -254,7 +266,7 @@ async def perform_input(config: dict, input_string: str):
     prompt = build_prompt(context)
 
     # we want an ai answer
-    prompt += context['ai_name'] + ': '
+    prompt += context['ai_name'] + ':\n'
     response = await get_novelai_response(config, context, prompt)
 
     update_context(context, response)
@@ -268,7 +280,7 @@ async def perform_ai_speak(config: dict):
     prompt = build_prompt(context)
 
     # we want an ai answer
-    prompt += context['ai_name'] + ': '
+    prompt += context['ai_name'] + ':\n'
     response = await get_novelai_response(config, context, prompt)
 
     update_context(context, response)
@@ -281,7 +293,7 @@ def add_instruct_and_save(input_string: str):
   context['messages'].append({
     'sender': None,
     'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-    'text': '{ ' + input_string + ' }'
+    'text': '[ ' + input_string + ' ]'
   })
   save_context(context)
 
@@ -321,22 +333,32 @@ def format_keystrokes(key_string):
     return '+'.join(word.capitalize() for word in key_string.split('+'))
 
 def print_hotkeys(hotkeys: dict):
-    print(f'Hotkeys:\n{format_keystrokes(hotkeys["list_devices"])} to list all audio devices for use in config.\n{format_keystrokes(hotkeys["record"])} to speak to the ai and get response.\n{format_keystrokes(hotkeys["instruct"])} to add a note or instruct without getting ai response.\n{format_keystrokes(hotkeys["ai_speak"])} to let the ai speak.\n{format_keystrokes(hotkeys["print_hotkeys"])} to show this help.\nPress Ctrl+C on the terminal window to quit.')
+    print(f'Hotkeys:\n{format_keystrokes(hotkeys["list_devices"])} to list all audio devices for use in config.\n{format_keystrokes(hotkeys["record"])} to speak to the ai and get response.\n{format_keystrokes(hotkeys["instruct"])} to add a note or instruct without getting ai response.\n{format_keystrokes(hotkeys["ai_speak"])} to let the ai speak.\n{format_keystrokes(hotkeys["print_hotkeys"])} to show this help.\nPress ESC to quit.')
+
+
+def on_key_release(key):
+  if key == keyboard.Key.esc:
+    # Stop the listener if the 'esc' key is pressed
+    return False
+  else:
+    hotkey = str(key).replace("'", "")
+    hotkey_actions = {
+      hotkeys['list_devices']: list_audio_devices,
+      hotkeys['record']: on_record,
+      hotkeys['instruct']: on_instruct,
+      hotkeys['ai_speak']: on_ai_speak,
+      hotkeys['print_hotkeys']: lambda: print_hotkeys(hotkeys)
+    }
+    if hotkey in hotkey_actions:
+      hotkey_actions[hotkey]()
 
 # Main script
 config = load_config_with_defaults()
-
 hotkeys = config['hotkeys']
-
-keyboard.add_hotkey(hotkeys['list_devices'], list_audio_devices)
-keyboard.add_hotkey(hotkeys['record'], on_record)
-keyboard.add_hotkey(hotkeys['instruct'], on_instruct)
-keyboard.add_hotkey(hotkeys['ai_speak'], on_ai_speak)
-keyboard.add_hotkey(hotkeys['print_hotkeys'], lambda: print_hotkeys(hotkeys))
-
 print_hotkeys(hotkeys)
-try:
-    keyboard.wait()  # Keep the script running to listen for the shortcut
-except KeyboardInterrupt:
-    print('\nExiting the script...')
-    os.system('exit')
+
+# Start the listener
+with keyboard.Listener(on_release=on_key_release) as listener:
+  # Keep the script running
+  listener.join()
+
