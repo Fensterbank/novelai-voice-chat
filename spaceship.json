@@ -26,9 +26,9 @@
       "text": "Captain, we're cruising through the Orion Arm of the Milky Way, making our way to the next cosmic pit stop. Coordinates: 23.456, -67.890."
     },
     {
-      "sender": null,
+      "sender": "director",
       "date": "2023-11-24T11:05:01.883367+00:00",
-      "text": "{  It's Friday, 2023/11/24, 11:05. }"
+      "text": "It's Friday, 2023/11/24, 11:05."
     },
     {
       "date": "2023-11-24T11:05:01.883376+00:00",
@@ -36,9 +36,9 @@
       "text": "Increase speed by 5%. "
     },
     {
-      "sender": null,
+      "sender": "director",
       "date": "2023-11-24T11:07:30.342775+00:00",
-      "text": "{ Cortana keeps its answers short.  }"
+      "text": "Cortana keeps its answers short."
     },
     {
       "date": "2023-11-24T11:08:15.877297+00:00",
@@ -136,9 +136,9 @@
       "text": "You're welcome, Captain."
     },
     {
-      "sender": null,
+      "sender": "director",
       "date": "2023-11-24T12:40:44.023317+00:00",
-      "text": "{ 1 hours later. It's Friday, 2023/11/24, 12:40. }"
+      "text": "1 hours later. It's Friday, 2023/11/24, 12:40."
     },
     {
       "date": "2023-11-24T12:42:17.992240+00:00",
@@ -191,9 +191,9 @@
       "text": "85% capacity, sir. 4 years worth of water. No need to look for more water during this trip, Captain."
     },
     {
-      "sender": null,
+      "sender": "director",
       "date": "2023-11-24T18:53:52.054928+00:00",
-      "text": "{ 6 hours later. It's Friday, 2023/11/24, 18:53. }"
+      "text": "6 hours later. It's Friday, 2023/11/24, 18:53."
     },
     {
       "date": "2023-11-24T18:53:52.054944+00:00",
@@ -216,9 +216,9 @@
       "text": "Wonderful, sir. Enjoy the journey."
     },
     {
-      "sender": null,
+      "sender": "director",
       "date": "2023-11-24T19:16:17.061633+00:00",
-      "text": "{ 21 minutes later. It's Friday, 2023/11/24, 19:16. }"
+      "text": "21 minutes later. It's Friday, 2023/11/24, 19:16."
     },
     {
       "date": "2023-11-24T19:16:17.061657+00:00",
@@ -251,9 +251,9 @@
       "text": "No one to be seen within a thousand light-years distance."
     },
     {
-      "sender": null,
+      "sender": "director",
       "date": "2023-11-24T19:26:36.509283+00:00",
-      "text": "{ 8 minutes later. It's Friday, 2023/11/24, 20:26. }"
+      "text": "8 minutes later. It's Friday, 2023/11/24, 20:26."
     },
     {
       "date": "2023-11-24T19:26:36.509296+00:00",
@@ -261,19 +261,49 @@
       "text": "Seems like we are all alone."
     },
     {
-      "date": "2023-11-24T19:26:46.380586+00:00",
-      "sender": "ai",
-      "text": "100% accuracy, Captain. We're the only ones out here. Are you experiencing feelings of loneliness?"
+      "sender": "director",
+      "date": "2023-11-26T16:05:10.976666+00:00",
+      "text": "1 days later. It's Sunday, 2023/11/26, 17:05."
     },
     {
-      "date": "2023-11-24T19:27:07.173011+00:00",
+      "date": "2023-11-26T16:05:20.738537+00:00",
+      "sender": "ai",
+      "text": "We're nearing a star, sir. Would you like to see it? We'll be passing by it soon."
+    },
+    {
+      "date": "2023-11-26T16:05:32.486719+00:00",
       "sender": "user",
-      "text": "No, I just wondered."
+      "text": "Yes, sure."
     },
     {
-      "date": "2023-11-24T19:27:32.597596+00:00",
+      "date": "2023-11-26T16:05:43.999511+00:00",
       "sender": "ai",
-      "text": "100 percent confirmation, Captain. No one around. The closest star system is almost 2,500 light-years away."
+      "text": "Would you like to hear the details, sir? The star is named HD 85512."
+    },
+    {
+      "date": "2023-11-26T16:05:53.107852+00:00",
+      "sender": "user",
+      "text": "Yes, please tell me something about it, Star."
+    },
+    {
+      "date": "2023-11-26T16:06:06.267887+00:00",
+      "sender": "ai",
+      "text": "Sir, this star is a yellow dwarf and has an estimated age of 3.2 billion years."
+    },
+    {
+      "date": "2023-11-26T16:06:19.081045+00:00",
+      "sender": "ai",
+      "text": "The main sequence life phase should still have around 3.4 billion years left."
+    },
+    {
+      "date": "2023-11-26T16:07:04.564921+00:00",
+      "sender": "user",
+      "text": "Thank you, very interesting."
+    },
+    {
+      "date": "2023-11-26T16:07:14.299164+00:00",
+      "sender": "ai",
+      "text": "gladly, Captain."
     }
   ]
 }

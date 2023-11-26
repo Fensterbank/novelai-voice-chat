@@ -15,6 +15,7 @@
         "record": "z",
         "instruct": "x",
         "ai_speak": "c",
+        "delete_last_action": "d",
         "list_devices": "l",
         "print_hotkeys": "h"
     },

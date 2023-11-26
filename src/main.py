@@ -58,6 +58,7 @@ def load_config_with_defaults():
             'record': 'z',
             'instruct': 'x',
             'ai_speak': 'c',
+            'delete_last_action': 'del',
             'list_devices': 'l',
             'print_hotkeys': 'h'
         },
@@ -118,9 +119,9 @@ def add_director_note_if_necessary(context: dict):
   # if last_message_date_string is null, this is the first user submitted message, so we add a director note without a time difference
   if last_message.get('date') is None:
     context['messages'].append({
-      'sender': None,
+      'sender': 'director',
       'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-      'text': '[ ' + f" It's {formatted_date}." + ' ]'
+      'text': f" It's {formatted_date}."
     })
     return
 
@@ -129,9 +130,9 @@ def add_director_note_if_necessary(context: dict):
 
   if time_difference_text:
     context['messages'].append({
-      'sender': None,
+      'sender': 'director',
       'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-      'text': '[ ' + f"{time_difference_text} later." + f" It's {formatted_date}." + ' ]'
+      'text': f"{time_difference_text} later. It's {formatted_date}."
     })
 
 def build_prompt(context: dict) -> str:
@@ -147,10 +148,10 @@ def build_prompt(context: dict) -> str:
 
     if sender == 'ai':
       prompt += '\n' + f"{ai_name}:\n{text}"
-    elif sender == "user":
+    elif sender == 'user':
       prompt += '\n' + f"{user_name}:\n{text}"
-    else:
-      prompt += '\n' + text
+    elif sender == 'director':
+      prompt += '\n' + f"[{text}]"
 
   prompt += '\n'
   return prompt
@@ -234,7 +235,7 @@ async def get_novelai_response(config: dict, context: dict, prompt: str):
     global_settings.rep_pen_whitelist = True
     global_settings.generate_until_sentence = True
 
-    bad_words: Optional[BanList] = BanList('[', ']', '\n', f"{context['user_name']}:")
+    bad_words: Optional[BanList] = BanList('[', ']', '\n', '<3', f"{context['user_name']}:")
     bias_groups: List[BiasGroup] = []
 
     module = None
@@ -276,6 +277,9 @@ async def perform_ai_speak(config: dict):
 
     with open(context_file, 'r') as file:
         context = json.load(file)
+        
+    if config['add_timestamps']:
+      add_director_note_if_necessary(context)
 
     prompt = build_prompt(context)
 
@@ -286,14 +290,14 @@ async def perform_ai_speak(config: dict):
     update_context(context, response)
 
 def add_instruct_and_save(input_string: str):
-  print('Adding instruct: ' + input_string)
+  print('Added instruct: ' + input_string)
   with open(context_file, 'r') as file:
       context = json.load(file)
 
   context['messages'].append({
-    'sender': None,
+    'sender': 'director',
     'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-    'text': '[ ' + input_string + ' ]'
+    'text': input_string
   })
   save_context(context)
 
@@ -317,7 +321,7 @@ def on_ai_speak():
     asyncio.run(perform_ai_speak(config))
 
 # let the user record an instruct message which will be placed at the end of the context without getting any response from the ai
-def on_instruct():
+def on_instruct(hotkeys: dict):
     print('Record a note...')
 
     recording_thread = ResultThread(target=transcribe, args=(), kwargs={'config': config})
@@ -328,12 +332,23 @@ def on_instruct():
     transcribed_text = recording_thread.result
 
     add_instruct_and_save(transcribed_text)
+    print_hotkeys(hotkeys)
+
+# delete the last message from the context
+def delete_last_action():
+  with open(context_file, 'r') as file:
+      context = json.load(file)
+
+  last_message = context['messages'][-1]      
+  context['messages'].pop()
+  save_context(context)
+  print('Deleted last message: ' + last_message['text'])
 
 def format_keystrokes(key_string):
     return '+'.join(word.capitalize() for word in key_string.split('+'))
 
 def print_hotkeys(hotkeys: dict):
-    print(f'Hotkeys:\n{format_keystrokes(hotkeys["list_devices"])} to list all audio devices for use in config.\n{format_keystrokes(hotkeys["record"])} to speak to the ai and get response.\n{format_keystrokes(hotkeys["instruct"])} to add a note or instruct without getting ai response.\n{format_keystrokes(hotkeys["ai_speak"])} to let the ai speak.\n{format_keystrokes(hotkeys["print_hotkeys"])} to show this help.\nPress ESC to quit.')
+    print(f'Hotkeys:\n{format_keystrokes(hotkeys["list_devices"])} to list all audio devices for use in config.\n{format_keystrokes(hotkeys["record"])} to speak to the ai and get response.\n{format_keystrokes(hotkeys["instruct"])} to add a note or instruct without getting ai response.\n{format_keystrokes(hotkeys["ai_speak"])} to let the ai speak.\n{format_keystrokes(hotkeys["delete_last_action"])} to delete the last action.\n{format_keystrokes(hotkeys["print_hotkeys"])} to show this help.\nPress ESC to quit.')
 
 
 def on_key_release(key):
@@ -345,8 +360,9 @@ def on_key_release(key):
     hotkey_actions = {
       hotkeys['list_devices']: list_audio_devices,
       hotkeys['record']: on_record,
-      hotkeys['instruct']: on_instruct,
+      hotkeys['instruct']: lambda: on_instruct(hotkeys),
       hotkeys['ai_speak']: on_ai_speak,
+      hotkeys['delete_last_action']: delete_last_action,
       hotkeys['print_hotkeys']: lambda: print_hotkeys(hotkeys)
     }
     if hotkey in hotkey_actions:
