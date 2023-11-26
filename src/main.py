@@ -136,13 +136,20 @@ def add_director_note_if_necessary(context: dict):
     })
 
 def build_prompt(context: dict) -> str:
-  prompt = context['introduction'] + '\n' + context['memory']
+  prompt = ''
+  # add introduction if its not None, empty or whitespace string
+  if context['introduction'] and context['introduction'].strip():
+    prompt += context['introduction'] + '\n'
+  # add memory if its not None, empty or whitespace string
+  if context['memory'] and context['memory'].strip():
+    prompt += context['memory'] + '\n'
+  
   ai_name = context['ai_name']
   user_name = context['user_name']
 
   last_2000_messages = context["messages"][-2000:]
-
-  for message in last_2000_messages:
+  
+  for i, message in enumerate(last_2000_messages):
     sender = message.get('sender')
     text = message.get('text', '')
 
@@ -151,7 +158,11 @@ def build_prompt(context: dict) -> str:
     elif sender == 'user':
       prompt += '\n' + f"{user_name}:\n{text}"
     elif sender == 'director':
-      prompt += '\n' + f"[{text}]"
+      prompt += '\n' + f"({text})"
+
+    # Add author's note as the tenth last element
+    if i == len(last_2000_messages) - 10 and context['authors_note'] and context['authors_note'].strip():
+      prompt += '\n' + f"[{context['authors_note']}]"
 
   prompt += '\n'
   return prompt
