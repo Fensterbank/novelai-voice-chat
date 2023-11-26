@@ -24,6 +24,7 @@ There are a few hotkeys available.
 | Z | Speak to the AI and get a response. Probably the default use case. |
 | X | Add a custom director note by speaking into the microphone without getting new AI output. Useful to add some story information like `It's a rainy day.` |
 | C | Let the AI say something. Useful if your companion should take the initiative or if it should react to a director note you just added before. |
+| D | Delete the last message. Useful to undo/redo one of your previous actions. Can be repeated. |
 | P | Print the hotkeys to the console output. |
 
 ## Prerequisites
