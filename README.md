@@ -47,7 +47,7 @@ To set up and run the project, follow these steps:
 ### 1. Clone the repository:
 
 ```
-git clone https://github.com/Fensterbank
+git clone https://github.com/Fensterbank/novelai-voice-chat.git
 cd novelai-voice-chat
 ```
 
