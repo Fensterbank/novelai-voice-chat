@@ -246,7 +246,7 @@ async def get_novelai_response(config: dict, context: dict, prompt: str):
     global_settings.rep_pen_whitelist = True
     global_settings.generate_until_sentence = True
 
-    bad_words: Optional[BanList] = BanList('[', ']', '\n', '<3', f"{context['user_name']}:")
+    bad_words: Optional[BanList] = BanList('[', ']', '(', ')', '\n', '<3', f"{context['user_name']}:")
     bias_groups: List[BiasGroup] = []
 
     module = None
