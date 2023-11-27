@@ -100,10 +100,6 @@ The project uses a configuration file to customize its behaviour. To set up the 
         "condition_on_previous_text": true,
         "verbose": false
     },
-    "novelai_options": {
-        // you can define other standard presets
-        "preset": "Carefree"
-    },
     // change the hotkeys
     "hotkeys": {
         "record": "z",
@@ -118,6 +114,8 @@ The project uses a configuration file to customize its behaviour. To set up the 
         "print_ai_response": true,
         "print_transcription": true
     },
+    // set to true if you want to check and confirm the transcribed voice input before continuing
+    "confirm_transcription": false,
     // You may want to disable timestamps, since AI can get mad, if you don't talk to them for days.
     "add_timestamps": true,
     // waiting time in ms before recording stops and transcribing starts

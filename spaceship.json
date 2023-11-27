@@ -1,4 +1,5 @@
 {
+  "preset": "Carefree",
   "introduction": "This is a collection of personal conversations between Captain Thomas and his spacecraft AI Cortana.\nConversations can be split by specific director messages using parentheses.\nWe are in space on a journey through the stars.",
   "voice_seed": "network",
   "user_name": "Captain Thomas",

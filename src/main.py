@@ -21,6 +21,10 @@ from pynput import keyboard
 parser = argparse.ArgumentParser()
 parser.add_argument('--context', help='Path to the context file')
 args = parser.parse_args()
+listener = None
+confirm_transcribe_listener = None
+config = None
+hotkeys = None
 
 # Retrieve the value of --context parameter
 context_file = args.context
@@ -51,9 +55,6 @@ def load_config_with_defaults():
             'condition_on_previous_text': True,
             'verbose': False
         },
-        'novelai_options': {
-            'preset': 'Carefree',
-        },
         'hotkeys': {
             'record': 'z',
             'instruct': 'x',
@@ -67,6 +68,7 @@ def load_config_with_defaults():
             'print_ai_response': True,
             'print_transcription': True
         },
+        'confirm_transcription': False,
         'add_timestamps': True,
         'silence_duration': 900,
         'playback_device_index': 0,
@@ -204,7 +206,7 @@ async def generate_voice(api, config: dict, context: dict, text: str):
   print("Playing AI response...")
   # play the audio
   play_audio(d / tts_file, device_index=config["playback_device_index"])
-  print_hotkeys(config['hotkeys'])
+  print_hotkeys()
 
 def play_audio(file_path, device_index=None):
     # Read the audio file
@@ -236,7 +238,7 @@ async def get_novelai_response(config: dict, context: dict, prompt: str):
     api = api_handler.api
     model = Model.Kayra
 
-    preset = Preset.from_official(model, config['novelai_options']['preset'])
+    preset = Preset.from_official(model, context['preset'])
     preset.min_length = 1
     preset.max_length = 20
     if config['output']['print_last_prompt']:
@@ -311,18 +313,41 @@ def add_instruct_and_save(input_string: str):
     'text': input_string
   })
   save_context(context)
+  print_hotkeys()
+
+def on_record_confirmation_press(key, transcribed_text, type):
+  global confirm_transcribe_listener
+  keyStr = str(key).replace("'", "")
+  if key == keyboard.Key.enter:
+    confirm_transcribe_listener.stop()
+    if (type == 'speak'):
+      asyncio.run(perform_input(config, transcribed_text))
+    elif (type == 'instruct'):
+      add_instruct_and_save(transcribed_text)
+  elif keyStr == "r":
+    confirm_transcribe_listener.stop()
+    if (type == 'speak'):
+      on_record()
+    elif (type == 'instruct'):
+      on_instruct()
 
 # let the user speak to the ai and add it including the ai's response to the context
 def on_record():
-    print('Speak to the AI...')
-    recording_thread = ResultThread(target=transcribe, args=(), kwargs={'config': config})
-    recording_thread.start()
-    
-    recording_thread.join()
-
-    transcribed_text = recording_thread.result
-
-    # Run the async function in an event loop
+  global confirm_transcribe_listener, config
+  print('Speak to the AI...')
+  recording_thread = ResultThread(target=transcribe, args=(), kwargs={'config': config})
+  recording_thread.start()
+  recording_thread.join()
+  transcribed_text = recording_thread.result
+  
+  # Prompt to confirm the transcribed text  
+  if (config['confirm_transcription']):
+    print(f"Transcribed Text: {transcribed_text}")
+    print("Press Enter to continue or R to record again.")
+    confirm_transcribe_listener = keyboard.Listener(on_release=lambda key: on_record_confirmation_press(key, transcribed_text, 'speak'))
+    with confirm_transcribe_listener:
+      confirm_transcribe_listener.join()
+  else:
     asyncio.run(perform_input(config, transcribed_text))
 
 # let the ai speak by itself. Is useful after having added a custom instruct or if the ai should go into the initiative.
@@ -333,17 +358,22 @@ def on_ai_speak():
 
 # let the user record an instruct message which will be placed at the end of the context without getting any response from the ai
 def on_instruct(hotkeys: dict):
+    global confirm_transcribe_listener, config
     print('Record a note...')
-
     recording_thread = ResultThread(target=transcribe, args=(), kwargs={'config': config})
     recording_thread.start()
-    
     recording_thread.join()
-
     transcribed_text = recording_thread.result
 
-    add_instruct_and_save(transcribed_text)
-    print_hotkeys(hotkeys)
+    # Prompt to confirm the transcribed text  
+    if (config['confirm_transcription']):
+      print(f"Transcribed Text: {transcribed_text}")
+      print("Press Enter to continue or R to record again.")
+      confirm_transcribe_listener = keyboard.Listener(on_release=lambda key: on_record_confirmation_press(key, transcribed_text, 'instruct'))
+      with confirm_transcribe_listener:
+        confirm_transcribe_listener.join()
+    else:
+      add_instruct_and_save(transcribed_text)
 
 # delete the last message from the context
 def delete_last_action():
@@ -358,11 +388,12 @@ def delete_last_action():
 def format_keystrokes(key_string):
     return '+'.join(word.capitalize() for word in key_string.split('+'))
 
-def print_hotkeys(hotkeys: dict):
+def print_hotkeys():
+    global hotkeys
     print(f'Hotkeys:\n{format_keystrokes(hotkeys["list_devices"])} to list all audio devices for use in config.\n{format_keystrokes(hotkeys["record"])} to speak to the ai and get response.\n{format_keystrokes(hotkeys["instruct"])} to add a note or instruct without getting ai response.\n{format_keystrokes(hotkeys["ai_speak"])} to let the ai speak.\n{format_keystrokes(hotkeys["delete_last_action"])} to delete the last action.\n{format_keystrokes(hotkeys["print_hotkeys"])} to show this help.\nPress ESC to quit.')
 
-
 def on_key_release(key):
+  global listener
   if key == keyboard.Key.esc:
     # Stop the listener if the 'esc' key is pressed
     return False
@@ -371,21 +402,29 @@ def on_key_release(key):
     hotkey_actions = {
       hotkeys['list_devices']: list_audio_devices,
       hotkeys['record']: on_record,
-      hotkeys['instruct']: lambda: on_instruct(hotkeys),
+      hotkeys['instruct']: on_instruct,
       hotkeys['ai_speak']: on_ai_speak,
       hotkeys['delete_last_action']: delete_last_action,
-      hotkeys['print_hotkeys']: lambda: print_hotkeys(hotkeys)
+      hotkeys['print_hotkeys']: print_hotkeys
     }
     if hotkey in hotkey_actions:
+      # Stop the listener before executing the action
+      listener.stop()
       hotkey_actions[hotkey]()
+      # Restart the listener after the action is done
+      listener = keyboard.Listener(on_release=on_key_release)
+      with listener:
+        # Keep the script running
+        listener.join()
 
 # Main script
 config = load_config_with_defaults()
 hotkeys = config['hotkeys']
-print_hotkeys(hotkeys)
+print_hotkeys()
 
 # Start the listener
-with keyboard.Listener(on_release=on_key_release) as listener:
+listener = keyboard.Listener(on_release=on_key_release)
+with listener:
   # Keep the script running
   listener.join()
 
