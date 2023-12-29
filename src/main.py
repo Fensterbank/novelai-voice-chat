@@ -357,7 +357,7 @@ def on_ai_speak():
     asyncio.run(perform_ai_speak(config))
 
 # let the user record an instruct message which will be placed at the end of the context without getting any response from the ai
-def on_instruct(hotkeys: dict):
+def on_instruct():
     global confirm_transcribe_listener, config
     print('Record a note...')
     recording_thread = ResultThread(target=transcribe, args=(), kwargs={'config': config})
